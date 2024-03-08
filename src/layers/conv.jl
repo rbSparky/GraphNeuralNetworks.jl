@@ -1656,11 +1656,13 @@ function EGNNConv(ch::Pair{NTuple{2, Int}, Int}; hidden_size::Int = 2 * ch[1][1]
     return EGNNConv(ϕe, ϕx, ϕh, num_features, residual)
 end
 
-function (l::EGNNConv)(g::AbstractGNNGraph, h, x, e = nothing)
+function (l::EGNNConv)(g::AbstractGNNGraph, h=nothing, x=nothing, e = nothing)
     if l.num_features.edge > 0
         @assert e!==nothing "Edge features must be provided."
     end
-    
+
+    #x = (A = rand(Float32, 4, 2), B = rand(Float32, 4, 3))
+    #h = (A = rand(Float32, 5, 2), B = rand(Float32, 5, 3))
     @assert size(h, 1)==l.num_features.in "Input features must match layer input size."
     xj, xi = expand_srcdst(g, x)
     hj, hi = expand_srcdst(g, h) #not needed since its invariant node features

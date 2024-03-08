@@ -135,7 +135,7 @@
         h = (A = rand(Float32, 5, 2), B = rand(Float32, 5, 3))
         layers = HeteroGraphConv((:A, :to, :B) => EGNNConv(4 => 2),
                                  (:B, :to, :A) => EGNNConv(4 => 2));
-        y = layers(hg, x, h)
+        y = layers(hg, h, x)
         @test size(y.A) == (2, 2) && size(y.B) == (2, 3)
     end
 
