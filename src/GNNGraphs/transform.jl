@@ -189,6 +189,48 @@ function remove_multi_edges(g::GNNGraph{<:COO_T}; aggr = +)
 end
 
 """
+    drop_edge(g::GNNGraph{<:COO_T}, p::Float32)
+
+Randomly drop edges from a GNNGraph based on a given probability.
+
+This function implements the edge dropping technique described in the following papers:
+- [DropEdge: Towards Deep Graph Convolutional Networks on Node Classification](https://arxiv.org/abs/1907.10903)
+- [Graph Contrastive Learning with Augmentations](https://arxiv.org/abs/2010.13902)
+
+# Arguments
+- `g`: The input graph from which edges will be dropped.
+- `p`: The probability of dropping each edge. Default value is `0.5`.
+
+# Returns
+A modified GNNGraph with edges dropped based on the given probability.
+
+# Example
+```julia
+using GraphNeuralNetworks
+
+# Construct a GNNGraph
+g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
+
+# Drop edges with a probability of 0.5
+g_new = drop_edge(g, 0.5)
+
+println(g_new)
+```
+"""
+function drop_edge(g::GNNGraph{<:COO_T}, p::Float32 = 0.5f)
+    num_edges = g.num_edges
+    edges_to_remove = filter(_ -> rand() < p, 1:num_edges)        
+    g = remove_edges(g, edges_to_remove)
+    s, t = edge_index(g)
+    w = get_edge_weight(g)
+    edata = g.edata
+    GNNGraph((s, t, w),
+             g.num_nodes, length(s), g.num_graphs,
+             g.graph_indicator,
+             g.ndata, edata, g.gdata)
+end
+
+"""
     add_edges(g::GNNGraph, s::AbstractVector, t::AbstractVector; [edata])
     add_edges(g::GNNGraph, (s, t); [edata])
     add_edges(g::GNNGraph, (s, t, w); [edata])
