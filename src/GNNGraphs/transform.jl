@@ -150,6 +150,57 @@ function remove_self_loops(g::GNNGraph{<:ADJMAT_T})
 end
 
 """
+    remove_edges(g::GNNGraph, edges_to_remove::AbstractVector{<:Integer})
+
+Remove specified edges from a GNNGraph.
+
+# Arguments
+- `g`: The input graph from which edges will be removed.
+- `edges_to_remove`: Vector of edge indices to be removed.
+
+# Returns
+A new GNNGraph with the specified edges removed.
+
+# Example
+```julia
+julia> using GraphNeuralNetworks
+
+# Construct a GNNGraph
+julia> g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
+GNNGraph:
+  num_nodes: 3
+  num_edges: 5
+  
+# Remove the second edge
+julia> g_new = remove_edges(g, [2]);
+
+julia> g_new
+GNNGraph:
+  num_nodes: 3
+  num_edges: 4
+```
+"""
+function remove_edges(g::GNNGraph{<:COO_T}, edges_to_remove::AbstractVector{<:Integer})
+    s, t = edge_index(g)
+    w = get_edge_weight(g)
+    edata = g.edata
+
+    mask_to_keep = trues(length(s))
+
+    mask_to_keep[edges_to_remove] .= false
+
+    s = s[mask_to_keep]
+    t = t[mask_to_keep]
+    edata = getobs(edata, mask_to_keep)
+    w = isnothing(w) ? nothing : getobs(w, mask_to_keep)
+
+    return GNNGraph((s, t, w),
+             g.num_nodes, length(s), g.num_graphs,
+             g.graph_indicator,
+             g.ndata, edata, g.gdata)
+end
+
+"""
     remove_multi_edges(g::GNNGraph; aggr=+)
 
 Remove multiple edges (also called parallel edges or repeated edges) from graph `g`.
@@ -224,10 +275,76 @@ function drop_edge(g::GNNGraph{<:COO_T}, p::Float32 = 0.5f)
     s, t = edge_index(g)
     w = get_edge_weight(g)
     edata = g.edata
-    GNNGraph((s, t, w),
+    return GNNGraph((s, t, w),
              g.num_nodes, length(s), g.num_graphs,
              g.graph_indicator,
              g.ndata, edata, g.gdata)
+end
+  
+"""
+    remove_nodes(g::GNNGraph, nodes_to_remove::AbstractVector)
+
+Remove specified nodes, and their associated edges, from a GNNGraph. This operation reindexes the remaining nodes to maintain a continuous sequence of node indices, starting from 1. Similarly, edges are reindexed to account for the removal of edges connected to the removed nodes.
+
+# Arguments
+- `g`: The input graph from which nodes (and their edges) will be removed.
+- `nodes_to_remove`: Vector of node indices to be removed.
+
+# Returns
+A new GNNGraph with the specified nodes and all edges associated with these nodes removed. 
+    
+# Example
+```julia
+g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
+
+# Remove nodes with indices 2 and 3, for example
+g_new = remove_nodes(g, [2, 3])
+
+# g_new now does not contain nodes 2 and 3, and any edges that were connected to these nodes.
+println(g_new)
+```
+"""
+function remove_nodes(g::GNNGraph{<:COO_T}, nodes_to_remove::AbstractVector)
+    nodes_to_remove = sort(union(nodes_to_remove))
+    s, t = edge_index(g)
+    w = get_edge_weight(g)
+    edata = g.edata
+    ndata = g.ndata
+    
+    function find_edges_to_remove(nodes, nodes_to_remove)
+        return findall(node_id -> begin
+            idx = searchsortedlast(nodes_to_remove, node_id)
+            idx >= 1 && idx <= length(nodes_to_remove) && nodes_to_remove[idx] == node_id
+        end, nodes)
+    end
+    
+    edges_to_remove_s = find_edges_to_remove(s, nodes_to_remove)
+    edges_to_remove_t = find_edges_to_remove(t, nodes_to_remove)
+    edges_to_remove = union(edges_to_remove_s, edges_to_remove_t)
+
+    mask_edges_to_keep = trues(length(s))
+    mask_edges_to_keep[edges_to_remove] .= false
+    s = s[mask_edges_to_keep]
+    t = t[mask_edges_to_keep]
+
+    w = isnothing(w) ? nothing : getobs(w, mask_edges_to_keep)
+
+    for node in sort(nodes_to_remove, rev=true) 
+        s[s .> node] .-= 1
+        t[t .> node] .-= 1
+    end
+
+    nodes_to_keep = setdiff(1:g.num_nodes, nodes_to_remove)
+    ndata = getobs(ndata, nodes_to_keep)
+    edata = getobs(edata, mask_edges_to_keep)
+
+    num_nodes = g.num_nodes - length(nodes_to_remove)
+    
+    return GNNGraph((s, t, w),
+             num_nodes, length(s), g.num_graphs,
+             g.graph_indicator,
+             ndata, edata, g.gdata)
+
 end
 
 """
