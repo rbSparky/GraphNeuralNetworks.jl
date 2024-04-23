@@ -183,10 +183,10 @@ end
         t = [2, 3, 4, 5]
         g = GNNGraph(s, t, graph_type = GRAPH_T)    
         
-        gnew = drop_edges(g, 1.0f)
+        gnew = drop_edges(g, 1.0)
         @test gnew.num_edges == 0
 
-        gnew = drop_edges(g, 0.0f)
+        gnew = drop_edges(g, 0.0)
         @test gnew.num_edges == g.num_edges
     end
 end
