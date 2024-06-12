@@ -79,7 +79,7 @@ export add_nodes,
        to_unidirected,
        random_walk_pe,
        remove_nodes,
-       drop_edges,
+       drop_edge,
 # from Flux
        batch,
        unbatch,
