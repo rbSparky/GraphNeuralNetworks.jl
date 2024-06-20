@@ -268,7 +268,7 @@ g_new = drop_edge(g, 0.5)
 println(g_new)
 ```
 """
-function drop_edge(g::GNNGraph{<:COO_T}, p::Float32 = 0.5f)
+function drop_edge(g::GNNGraph{<:COO_T}, p = 0.5)
     num_edges = g.num_edges
     edges_to_remove = filter(_ -> rand() < p, 1:num_edges)        
     g = remove_edges(g, edges_to_remove)
