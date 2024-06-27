@@ -366,12 +366,17 @@ A modified GNNGraph with nodes (and their associated edges) dropped based on the
 
 # Example
 ```julia
-using GraphNeuralNetworks
-# Construct a GNNGraph
-g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1], num_nodes=3)
-# Drop nodes with a probability of 0.5
-g_new = drop_node(g, 0.5)
-println(g_new)
+julia> using GraphNeuralNetworks
+
+julia> g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1], num_nodes=3)
+GNNGraph:
+  num_nodes: 3
+  num_edges: 5
+
+julia> g_new = drop_nodes(g, 0.5)
+GNNGraph:
+  num_nodes: 1
+  num_edges: 0
 ```
 """
 function drop_nodes(g::GNNGraph{<:COO_T}, p = 0.5)
