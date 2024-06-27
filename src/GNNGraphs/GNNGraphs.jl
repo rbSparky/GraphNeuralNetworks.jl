@@ -80,6 +80,7 @@ export add_nodes,
        random_walk_pe,
        remove_nodes,
        drop_edge,
+       drop_nodes,
 # from Flux
        batch,
        unbatch,

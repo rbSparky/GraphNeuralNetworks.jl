@@ -65,6 +65,7 @@ export
       ResGatedGraphConv,
       SAGEConv,
       SGConv,
+      TAGConv,
       TransformerConv,
 
 # layers/heteroconv
@@ -73,6 +74,7 @@ export
 # layers/temporalconv
       TGCN,
       A3TGCN,
+      GConvLSTM,
       GConvGRU,
 
 # layers/pool
