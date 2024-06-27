@@ -257,13 +257,17 @@ A modified GNNGraph with edges dropped based on the given probability.
 
 # Example
 ```julia
-using GraphNeuralNetworks
+julia> using GraphNeuralNetworks
 
-# Construct a GNNGraph
-g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
-
-# Drop edges with a probability of 0.5
-g_new = drop_edge(g, 0.5)
+julia> g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
+GNNGraph:     
+  num_nodes: 3
+  num_edges: 5
+  
+julia> g_new = drop_edge(g, 0.5)
+GNNGraph:
+  num_nodes: 3
+  num_edges: 3
 
 println(g_new)
 ```
