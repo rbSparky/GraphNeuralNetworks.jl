@@ -296,7 +296,7 @@ Remove specified nodes, and their associated edges, from a GNNGraph. This operat
 
 # Returns
 A new GNNGraph with the specified nodes and all edges associated with these nodes removed. 
-    
+
 # Example
 ```julia
 g = GNNGraph([1, 1, 2, 2, 3], [2, 3, 1, 3, 1])
@@ -348,7 +348,6 @@ function remove_nodes(g::GNNGraph{<:COO_T}, nodes_to_remove::AbstractVector)
              num_nodes, length(s), g.num_graphs,
              g.graph_indicator,
              ndata, edata, g.gdata)
-
 end
 
 """
