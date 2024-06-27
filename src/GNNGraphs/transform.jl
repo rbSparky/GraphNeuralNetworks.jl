@@ -240,7 +240,7 @@ function remove_multi_edges(g::GNNGraph{<:COO_T}; aggr = +)
 end
 
 """
-    drop_edge(g::GNNGraph{<:COO_T}, p::Float32)
+    drop_edge(g::GNNGraph{<:COO_T}, p)
 
 Randomly drop edges from a GNNGraph based on a given probability.
 
@@ -272,7 +272,7 @@ GNNGraph:
 println(g_new)
 ```
 """
-function drop_edge(g::GNNGraph{<:COO_T}, p::Float32 = 0.5f)
+function drop_edge(g::GNNGraph{<:COO_T}, p = 0.5)
     num_edges = g.num_edges
     edges_to_remove = filter(_ -> rand() < p, 1:num_edges)        
     g = remove_edges(g, edges_to_remove)
