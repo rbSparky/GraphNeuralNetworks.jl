@@ -32,14 +32,15 @@ and optionally an edge weight vector.
 
 # Forward
 
-    (::GCNConv)(g::GNNGraph, x::AbstractMatrix, edge_weight = nothing, norm_fn::Function = d -> 1 ./ sqrt.(d)) -> AbstractMatrix
+    (::GCNConv)(g::GNNGraph, x::AbstractMatrix, edge_weight = nothing, norm_fn::Function = d -> 1 ./ sqrt.(d), conv_weight::Union{Nothing,AbstractMatrix} = nothing) -> AbstractMatrix
 
-Takes as input a graph `g`,ca node feature matrix `x` of size `[in, num_nodes]`,
+Takes as input a graph `g`, a node feature matrix `x` of size `[in, num_nodes]`,
 and optionally an edge weight vector. Returns a node feature matrix of size 
 `[out, num_nodes]`.
 
 The `norm_fn` parameter allows for custom normalization of the graph convolution operation by passing a function as argument. 
 By default, it computes ``\frac{1}{\sqrt{d}}`` i.e the inverse square root of the degree (`d`) of each node in the graph. 
+If `conv_weight` is an `AbstractMatrix` of size `[out, in]`, then the convolution is performed using that weight matrix instead of the weights stored in the model.
 
 # Examples
 
@@ -102,10 +103,20 @@ check_gcnconv_input(g::AbstractGNNGraph, edge_weight::Nothing) = nothing
 function (l::GCNConv)(g::AbstractGNNGraph, 
                       x,
                       edge_weight::EW = nothing,
-                      norm_fn::Function = d -> 1 ./ sqrt.(d)  
+                      norm_fn::Function = d -> 1 ./ sqrt.(d); 
+                      conv_weight::Union{Nothing,AbstractMatrix} = nothing
                       ) where {EW <: Union{Nothing, AbstractVector}}
 
     check_gcnconv_input(g, edge_weight)
+
+    if conv_weight === nothing
+        weight = l.weight
+    else
+        weight = conv_weight
+        if size(weight) != size(l.weight)
+            throw(ArgumentError("The weight matrix has the wrong size. Expected $(size(l.weight)) but got $(size(weight))"))
+        end
+    end
 
     if l.add_self_loops
         g = add_self_loops(g)
@@ -116,11 +127,11 @@ function (l::GCNConv)(g::AbstractGNNGraph,
             @assert length(edge_weight) == g.num_edges
         end
     end
-    Dout, Din = size(l.weight)
+    Dout, Din = size(weight)
     if Dout < Din && !(g isa GNNHeteroGraph)
         # multiply before convolution if it is more convenient, otherwise multiply after
         # (this works only for homogenous graph)
-        x = l.weight * x
+        x = weight * x
     end
 
     xj, xi = expand_srcdst(g, x) # expand only after potential multiplication
@@ -150,7 +161,7 @@ function (l::GCNConv)(g::AbstractGNNGraph,
     end
     x = x .* cin'
     if Dout >= Din || g isa GNNHeteroGraph
-        x = l.weight * x
+        x = weight * x
     end
     return l.σ.(x .+ l.bias)
 end
@@ -2077,4 +2088,81 @@ end
 function Base.show(io::IO, l::TransformerConv)
     (in, ein), out = l.channels
     print(io, "TransformerConv(($in, $ein) => $out, heads=$(l.heads))")
+end
+
+"""
+    DConv(ch::Pair{Int, Int}, K::Int; init = glorot_uniform, bias = true)
+
+Diffusion convolution layer from the paper [Diffusion Convolutional Recurrent Neural Networks: Data-Driven Traffic Forecasting](https://arxiv.org/pdf/1707.01926).
+
+# Arguments
+
+- `ch`: Pair of input and output dimensions.
+- `K`: Number of diffusion steps.
+- `init`: Weights' initializer. Default `glorot_uniform`.
+- `bias`: Add learnable bias. Default `true`.
+
+# Examples
+```
+julia> g = GNNGraph(rand(10, 10), ndata = rand(Float32, 2, 10));
+
+julia> dconv = DConv(2 => 4, 4)
+DConv(2 => 4, K=4)
+
+julia> y = dconv(g, g.ndata.x);
+
+julia> size(y)
+(4, 10)
+```
+"""
+struct DConv <: GNNLayer
+    in::Int
+    out::Int
+    weights::AbstractArray
+    bias::AbstractArray
+    K::Int
+end
+
+@functor DConv
+
+function DConv(ch::Pair{Int, Int}, K::Int; init = glorot_uniform, bias = true)
+    in, out = ch
+    weights = init(2, K, out, in)
+    b = bias ? Flux.create_bias(weights, true, out) : false
+    DConv(in, out, weights, b, K)
+end
+
+function (l::DConv)(g::GNNGraph, x::AbstractMatrix)
+    #A = adjacency_matrix(g, weighted = true)
+    s, t = edge_index(g)
+    gt = GNNGraph(t, s, get_edge_weight(g))
+    deg_out = degree(g; dir = :out)
+    deg_in = degree(g; dir = :in)
+    deg_out = Diagonal(deg_out)
+    deg_in = Diagonal(deg_in)
+    
+    h = l.weights[1,1,:,:] * x .+ l.weights[2,1,:,:] * x
+
+    T0 = x
+    if l.K > 1
+        # T1_in = T0 * deg_in * A'
+        #T1_out = T0 * deg_out' * A
+        T1_out = propagate(w_mul_xj, g, +; xj = T0*deg_out')
+        T1_in = propagate(w_mul_xj, gt, +; xj = T0*deg_in)
+        h = h .+ l.weights[1,2,:,:] * T1_in .+ l.weights[2,2,:,:] * T1_out
+    end
+    for i in 2:l.K
+        T2_in = propagate(w_mul_xj, gt, +; xj = T1_in*deg_in)
+        T2_in = 2 * T2_in - T0
+        T2_out =  propagate(w_mul_xj, g ,+; xj = T1_out*deg_out')
+        T2_out = 2 * T2_out - T0
+        h = h .+ l.weights[1,i,:,:] * T2_in .+ l.weights[2,i,:,:] * T2_out
+        T1_in = T2_in
+        T1_out = T2_out
+    end
+    return h .+ l.bias
+end
+
+function Base.show(io::IO, l::DConv)
+    print(io, "DConv($(l.in) => $(l.out), K=$(l.K))")
 end
