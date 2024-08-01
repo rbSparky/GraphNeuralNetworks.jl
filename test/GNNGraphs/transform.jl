@@ -126,6 +126,13 @@ end
         @test new_t == [4]
         @test new_w == [0.3]
         @test new_edata == ['c']
+
+        # drop with probability
+        gnew = remove_edges(g, Float32(1.0))
+        @test gnew.num_edges == 0
+
+        gnew = remove_edges(g, Float32(0.0))
+        @test gnew.num_edges == g.num_edges
     end
 end
 
@@ -246,20 +253,6 @@ end end
     @test ndata_new == ndatatest
     @test edata_new == edatatest
 end end
-
-@testset "drop_edge" begin
-    if GRAPH_T == :coo
-        s = [1, 1, 2, 3]
-        t = [2, 3, 4, 5]
-        g = GNNGraph(s, t, graph_type = GRAPH_T)    
-        
-        gnew = drop_edge(g, Float32(1.0))
-        @test gnew.num_edges == 0
-
-        gnew = drop_edge(g, Float32(0.0))
-        @test gnew.num_edges == g.num_edges
-    end
-end
 
 @testset "drop_nodes" begin
     if GRAPH_T == :coo
