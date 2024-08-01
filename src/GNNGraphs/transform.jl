@@ -262,7 +262,6 @@ function remove_multi_edges(g::GNNGraph{<:COO_T}; aggr = +)
              g.graph_indicator,
              g.ndata, edata, g.gdata)
 end
-
 """
     remove_nodes(g::GNNGraph, nodes_to_remove::AbstractVector)
 
