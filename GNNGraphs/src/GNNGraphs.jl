@@ -12,9 +12,9 @@ import KrylovKit
 using ChainRulesCore
 using LinearAlgebra, Random, Statistics
 import MLUtils
-using MLUtils: getobs, numobs, ones_like, zeros_like, chunk, batch
+using MLUtils: getobs, numobs, ones_like, zeros_like, chunk, batch, rand_like
 import Functors
-using LuxDeviceUtils: get_device, cpu_device, LuxCPUDevice
+using MLDataDevices: get_device, cpu_device, CPUDevice
 
 include("chainrules.jl") # hacks for differentiability
 
@@ -77,9 +77,9 @@ export add_nodes,
        to_bidirected,
        to_unidirected,
        random_walk_pe,
+       perturb_edges,
        remove_nodes,
        ppr_diffusion,
-       drop_nodes,
 # from MLUtils
        batch,
        unbatch,
@@ -107,5 +107,8 @@ export sort_edge_index, color_refinement
 
 include("gatherscatter.jl")
 # _gather, _scatter
+
+include("mldatasets.jl")
+export mldataset2gnngraph
 
 end #module

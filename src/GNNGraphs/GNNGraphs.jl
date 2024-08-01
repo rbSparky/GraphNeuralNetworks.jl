@@ -80,7 +80,6 @@ export add_nodes,
        random_walk_pe,
        perturb_edges,
        remove_nodes,
-       drop_edge,
        ppr_diffusion,
        drop_nodes,
 # from MLUtils.jl

@@ -13,8 +13,8 @@ using Test
 using MLDatasets
 using InlineStrings  # not used but with the import we test #98 and #104
 using SimpleWeightedGraphs
-using LuxDeviceUtils: gpu_device, cpu_device, get_device
-using LuxDeviceUtils: LuxCUDADevice # remove after https://github.com/LuxDL/LuxDeviceUtils.jl/pull/58
+using MLDataDevices: gpu_device, cpu_device, get_device
+using MLDataDevices: CUDADevice
 
 CUDA.allowscalar(false)
 
@@ -36,7 +36,8 @@ tests = [
     "sampling",
     "gnnheterograph",
     "temporalsnapshotsgnngraph",
-    "ext/SimpleWeightedGraphs/SimpleWeightedGraphs"
+    "mldatasets",
+    "ext/SimpleWeightedGraphs"
 ]
 
 !CUDA.functional() && @warn("CUDA unavailable, not testing GPU support")
@@ -49,7 +50,6 @@ for graph_type in (:coo, :dense, :sparse)
     # global TEST_GPU = false
 
     @testset "$t" for t in tests
-        t == "GNNGraphs/sampling" && GRAPH_T != :coo && continue
         include("$t.jl")
     end
 end

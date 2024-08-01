@@ -181,7 +181,7 @@ end
     s, t = [1, 2, 3, 4, 5], [2, 3, 4, 5, 1]
     g = GNNGraph((s, t))
     rng = MersenneTwister(42)
-    g_per = perturb_edges(g, 0.5, rng=rng)
+    g_per = perturb_edges(rng, g, 0.5)
     @test g_per.num_edges == 8
 end end
 
@@ -247,20 +247,20 @@ end end
     @test edata_new == edatatest
 end end
 
-@testset "drop_nodes" begin
+@testset "remove_nodes(g, p)" begin
     if GRAPH_T == :coo
         Random.seed!(42)
         s = [1, 1, 2, 3]
         t = [2, 3, 4, 5]
         g = GNNGraph(s, t, graph_type = GRAPH_T)    
         
-        gnew = drop_nodes(g, Float32(0.5))
+        gnew = remove_nodes(g, 0.5)
         @test gnew.num_nodes == 3
 
-        gnew = drop_nodes(g, Float32(1.0))
+        gnew = remove_nodes(g, 1.0)
         @test gnew.num_nodes == 0
 
-        gnew = drop_nodes(g, Float32(0.0))
+        gnew = remove_nodes(g, 0.0)
         @test gnew.num_nodes == 5
     end
 end

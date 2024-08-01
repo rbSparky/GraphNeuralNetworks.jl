@@ -11,12 +11,6 @@ abstract type GNNLayer end
 # To be specialized by layers also needing edge features as input (e.g. NNConv). 
 (l::GNNLayer)(g::GNNGraph) = GNNGraph(g, ndata = l(g, node_features(g)))
 
-function (l::GNNLayer)(g::AbstractVector{<:GNNGraph}, args...; kws...)
-    @warn "Passing an array of graphs to a `GNNLayer` is discouraged. 
-           Explicitely call `Flux.batch(graphs)` first instead." maxlog=1
-    return l(batch(g), args...; kws...)
-end
-
 """
     WithGraph(model, g::GNNGraph; traingraph=false) 
 
@@ -215,7 +209,4 @@ julia> dotdec(g, rand(2, 5))
 """
 struct DotDecoder <: GNNLayer end
 
-function (::DotDecoder)(g, x)
-    check_num_nodes(g, x)
-    return apply_edges(xi_dot_xj, g, xi = x, xj = x)
-end
+(::DotDecoder)(g, x) = GNNlib.dot_decoder(g, x)
